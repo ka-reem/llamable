@@ -17,8 +17,8 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 24 100% 58%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -35,6 +35,24 @@ All colors MUST be HSL.
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    /* Lovable Design System */
+    --lovable-gradient: linear-gradient(135deg, #1e293b 0%, #3b82f6 25%, #8b5cf6 50%, #f97316 75%, #ef4444 100%);
+    --lovable-surface: 240 10% 8%;
+    --lovable-surface-hover: 240 8% 12%;
+    --lovable-text-primary: 0 0% 100%;
+    --lovable-text-secondary: 240 5% 65%;
+    --lovable-border: 240 6% 20%;
+    --lovable-accent-orange: 24 100% 58%;
+    --lovable-accent-blue: 217 91% 60%;
+    
+    /* Chat Interface */
+    --chat-background: 240 10% 6%;
+    --chat-message-user: 240 8% 12%;
+    --chat-message-ai: 240 6% 10%;
+    --chat-input: 240 8% 14%;
 
     --radius: 0.5rem;
 
@@ -56,33 +74,33 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 8%;
+    --foreground: 0 0% 100%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 24 100% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 8% 12%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 8% 12%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 8% 12%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 240 6% 20%;
+    --input: 240 8% 14%;
+    --ring: 24 100% 58%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

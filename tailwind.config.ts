@@ -47,6 +47,21 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        lovable: {
+          surface: "hsl(var(--lovable-surface))",
+          "surface-hover": "hsl(var(--lovable-surface-hover))",
+          "text-primary": "hsl(var(--lovable-text-primary))",
+          "text-secondary": "hsl(var(--lovable-text-secondary))",
+          border: "hsl(var(--lovable-border))",
+          "accent-orange": "hsl(var(--lovable-accent-orange))",
+          "accent-blue": "hsl(var(--lovable-accent-blue))",
+        },
+        chat: {
+          background: "hsl(var(--chat-background))",
+          "message-user": "hsl(var(--chat-message-user))",
+          "message-ai": "hsl(var(--chat-message-ai))",
+          input: "hsl(var(--chat-input))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -62,6 +77,9 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      backgroundImage: {
+        'lovable-gradient': 'var(--lovable-gradient)',
       },
       keyframes: {
         "accordion-down": {
