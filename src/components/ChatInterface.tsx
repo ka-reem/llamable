@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Plus, Paperclip, Mic } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Send, Plus, Paperclip, Mic, Settings } from "lucide-react";
 
 interface Message {
   id: string;
@@ -11,11 +12,70 @@ interface Message {
   timestamp: Date;
 }
 
-const ChatInterface = () => {
+interface ChatInterfaceProps {
+  onCodeGenerated: (code: string) => void;
+}
+
+const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [showApiDialog, setShowApiDialog] = useState(false);
+  
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('openai_api_key');
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+  }, []);
 
-  const handleSendMessage = () => {
+  const saveApiKey = (key: string) => {
+    localStorage.setItem('openai_api_key', key);
+    setApiKey(key);
+    setShowApiDialog(false);
+  };
+
+  const generateCodeWithAI = async (prompt: string) => {
+    if (!apiKey) {
+      setShowApiDialog(true);
+      return;
+    }
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful coding assistant. Generate clean, working React/TypeScript code based on user requests. Only return the code, no explanations.'
+            },
+            {
+              role: 'user',
+              content: `Generate React/TypeScript code for: ${prompt}`
+            }
+          ],
+          max_tokens: 2000,
+        }),
+      });
+
+      const data = await response.json();
+      const generatedCode = data.choices[0]?.message?.content || '';
+      onCodeGenerated(generatedCode);
+      
+      return generatedCode;
+    } catch (error) {
+      console.error('Error generating code:', error);
+      return 'Error generating code. Please check your API key.';
+    }
+  };
+
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
     const newMessage: Message = {
@@ -26,18 +86,20 @@ const ChatInterface = () => {
     };
 
     setMessages(prev => [...prev, newMessage]);
+    const currentInput = inputValue;
     setInputValue("");
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I'll help you build that! Let me create a beautiful website for you.",
-        sender: "ai",
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
+    // Generate code with AI
+    const generatedCode = await generateCodeWithAI(currentInput);
+    
+    // Add AI response
+    const aiResponse: Message = {
+      id: (Date.now() + 1).toString(),
+      content: generatedCode || "I'll help you build that! Let me create it for you.",
+      sender: "ai",
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, aiResponse]);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -50,9 +112,45 @@ const ChatInterface = () => {
   return (
     <div className="flex flex-col h-full bg-chat-background">
       {/* Chat Header */}
-      <div className="p-4 border-b border-lovable-border">
-        <h2 className="text-lovable-text-primary font-semibold">Chat</h2>
-        <p className="text-lovable-text-secondary text-sm">Build something amazing</p>
+      <div className="p-4 border-b border-lovable-border flex items-center justify-between">
+        <div>
+          <h2 className="text-lovable-text-primary font-semibold">Chat</h2>
+          <p className="text-lovable-text-secondary text-sm">Build something amazing</p>
+        </div>
+        <Dialog open={showApiDialog} onOpenChange={setShowApiDialog}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-lovable-text-secondary hover:text-lovable-text-primary">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-lovable-surface border-lovable-border">
+            <DialogHeader>
+              <DialogTitle className="text-lovable-text-primary">OpenAI API Key</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-lovable-text-secondary text-sm">
+                Enter your OpenAI API key to enable AI code generation:
+              </p>
+              <Input
+                type="password"
+                placeholder="sk-..."
+                onChange={(e) => setApiKey(e.target.value)}
+                className="bg-chat-input border-lovable-border text-lovable-text-primary"
+              />
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => saveApiKey(apiKey)}
+                  className="bg-lovable-accent-orange hover:bg-lovable-accent-orange/80"
+                >
+                  Save API Key
+                </Button>
+                <Button variant="outline" onClick={() => setShowApiDialog(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Messages */}
