@@ -23,14 +23,14 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
   const [showApiDialog, setShowApiDialog] = useState(false);
   
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('openai_api_key');
+    const savedApiKey = localStorage.getItem('llama_api_key');
     if (savedApiKey) {
       setApiKey(savedApiKey);
     }
   }, []);
 
   const saveApiKey = (key: string) => {
-    localStorage.setItem('openai_api_key', key);
+    localStorage.setItem('llama_api_key', key);
     setApiKey(key);
     setShowApiDialog(false);
   };
@@ -42,17 +42,17 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
     }
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://api.llama.com/compat/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'Llama-4-Scout-17B-16E-Instruct-FP8',
           messages: [
             {
-              role: 'system',
+              role: 'developer',
               content: 'You are a helpful coding assistant. Generate clean, working React/TypeScript code based on user requests. Only return the code, no explanations.'
             },
             {
@@ -125,11 +125,11 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
           </DialogTrigger>
           <DialogContent className="bg-lovable-surface border-lovable-border">
             <DialogHeader>
-              <DialogTitle className="text-lovable-text-primary">OpenAI API Key</DialogTitle>
+              <DialogTitle className="text-lovable-text-primary">Llama API Key</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-lovable-text-secondary text-sm">
-                Enter your OpenAI API key to enable AI code generation:
+                Enter your Llama API key to enable AI code generation:
               </p>
               <Input
                 type="password"
