@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PreviewAreaProps {
@@ -8,58 +8,7 @@ interface PreviewAreaProps {
 const PreviewArea = ({ generatedCode }: PreviewAreaProps) => {
   const [showCode, setShowCode] = useState(false);
 
-  // Function to safely execute and render React code
-  const executeCode = (code: string) => {
-    try {
-      // Clean the code - remove import statements and export statements
-      let cleanCode = code
-        .replace(/import\s+.*?from\s+['"].*?['"];?\s*/g, '')
-        .replace(/export\s+default\s+/g, '')
-        .replace(/export\s+/g, '');
-
-      // If the code contains JSX, wrap it in a component
-      if (cleanCode.includes('<') && cleanCode.includes('>')) {
-        // Try to extract a function component
-        const componentMatch = cleanCode.match(/(?:const|function)\s+(\w+)\s*=?\s*\([^)]*\)\s*=?>\s*\{?[\s\S]*?\}?[\s\S]*?return\s*\([\s\S]*?\);?/);
-        
-        if (componentMatch) {
-          // Use the existing component
-          cleanCode = componentMatch[0];
-        } else if (cleanCode.includes('return')) {
-          // Wrap existing return statement in a component
-          cleanCode = `function GeneratedComponent() { ${cleanCode} }`;
-        } else {
-          // Wrap JSX in a simple component
-          cleanCode = `function GeneratedComponent() { return (${cleanCode}); }`;
-        }
-      }
-
-      // Create a function that returns the component
-      const componentFunction = new Function('React', 'useState', 'useEffect', `
-        const { createElement, Fragment } = React;
-        ${cleanCode}
-        return GeneratedComponent || (() => React.createElement('div', {}, 'Component rendered successfully'));
-      `);
-
-      const Component = componentFunction(
-        { createElement: (type, props, ...children) => ({ type, props, children }), Fragment: 'Fragment' },
-        useState,
-        () => {}
-      );
-
-      return Component;
-    } catch (error) {
-      console.error('Code execution error:', error);
-      return null;
-    }
-  };
-
-  const RenderedComponent = useMemo(() => {
-    if (!generatedCode) return null;
-    return executeCode(generatedCode);
-  }, [generatedCode]);
-
-  const renderCode = () => {
+  const renderContent = () => {
     if (!generatedCode) {
       return (
         <div className="h-full bg-lovable-gradient overflow-auto">
@@ -104,9 +53,9 @@ const PreviewArea = ({ generatedCode }: PreviewAreaProps) => {
             <h3 className="text-lovable-text-primary font-semibold">Generated Code</h3>
             <button 
               onClick={() => setShowCode(false)}
-              className="text-lovable-text-secondary hover:text-lovable-text-primary text-sm"
+              className="px-3 py-1 bg-lovable-primary text-white rounded hover:bg-lovable-primary/80 text-sm"
             >
-              View Preview
+              ← Back to Preview
             </button>
           </div>
           <ScrollArea className="h-full p-4">
@@ -118,39 +67,35 @@ const PreviewArea = ({ generatedCode }: PreviewAreaProps) => {
       );
     }
 
-    // Render the live preview
+    // Check if the code is HTML/CSS/JS (for website clones)
+    const isHTMLContent = generatedCode.includes('<!DOCTYPE html>') || 
+                         generatedCode.includes('<html') || 
+                         generatedCode.includes('<body');
+
     return (
       <div className="h-full bg-white">
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-gray-900 font-semibold">Live Preview</h3>
           <button 
             onClick={() => setShowCode(true)}
-            className="text-gray-600 hover:text-gray-900 text-sm"
+            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
           >
             View Code
           </button>
         </div>
-        <div className="h-full p-8 overflow-auto">
-          {RenderedComponent ? (
-            <div 
-              className="w-full h-full"
-              dangerouslySetInnerHTML={{ 
-                __html: `
-                  <div id="preview-container" class="w-full h-full">
-                    ${generatedCode.includes('function') || generatedCode.includes('const') ? 
-                      `<div class="p-4 bg-blue-50 rounded-lg mb-4">
-                        <p class="text-blue-800 text-sm">React Component Generated</p>
-                      </div>` : 
-                      generatedCode.includes('<') ? generatedCode : 
-                      `<div class="p-4 bg-gray-100 rounded-lg"><pre>${generatedCode}</pre></div>`
-                    }
-                  </div>
-                ` 
-              }}
+        <div className="h-full overflow-auto">
+          {isHTMLContent ? (
+            <iframe
+              srcDoc={generatedCode}
+              className="w-full h-full border-0"
+              title="Generated Website Preview"
+              sandbox="allow-scripts allow-same-origin"
             />
           ) : (
-            <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4">Generated Content</h2>
+            <div className="p-8">
+              <div className="text-center mb-4">
+                <h2 className="text-2xl font-bold mb-4">Generated Content</h2>
+              </div>
               <div className="p-4 bg-gray-100 rounded-lg text-left">
                 <pre className="text-sm overflow-auto whitespace-pre-wrap">
                   {generatedCode}
@@ -163,7 +108,7 @@ const PreviewArea = ({ generatedCode }: PreviewAreaProps) => {
     );
   };
 
-  return renderCode();
+  return renderContent();
 };
 
 export default PreviewArea;
