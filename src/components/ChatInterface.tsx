@@ -14,9 +14,10 @@ interface Message {
 
 interface ChatInterfaceProps {
   onCodeGenerated: (code: string) => void;
+  currentCode?: string;
 }
 
-const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
+const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -26,7 +27,11 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
     
     try {
       const { data, error } = await supabase.functions.invoke('generate-code', {
-        body: { prompt }
+        body: { 
+          prompt: currentCode 
+            ? `${prompt}\n\nCurrent code to build upon:\n${currentCode}`
+            : prompt 
+        }
       });
 
       if (error) {
@@ -117,13 +122,24 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
       <ScrollArea className="flex-1 p-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 bg-lovable-gradient rounded-full flex items-center justify-center mb-4">
-              <span className="text-white text-2xl">❤️</span>
+            <div className="w-20 h-20 bg-lovable-gradient rounded-full flex items-center justify-center mb-6">
+              <span className="text-white text-3xl">🦙</span>
             </div>
-            <h3 className="text-lovable-text-primary font-semibold mb-2">Start building</h3>
-            <p className="text-lovable-text-secondary text-sm">
-              Describe what you want to build and I'll help you create it
+            <h3 className="text-lovable-text-primary font-semibold mb-3 text-xl">Create your very own website</h3>
+            <p className="text-lovable-text-secondary text-base mb-6 max-w-md">
+              with just a few words
             </p>
+            <Button
+              onClick={() => {
+                setMessages([]);
+                onCodeGenerated("");
+              }}
+              variant="outline"
+              size="sm"
+              className="bg-lovable-surface hover:bg-lovable-surface-hover border-lovable-border text-lovable-text-secondary"
+            >
+              Start New Project
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -193,7 +209,10 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
             variant="secondary" 
             size="sm" 
             className="bg-lovable-surface hover:bg-lovable-surface-hover text-lovable-text-secondary border border-lovable-border"
-            onClick={() => setInputValue("Create a Netflix website clone")}
+            onClick={(e) => {
+              e.preventDefault();
+              setInputValue("Create a Netflix website clone");
+            }}
           >
             🎬 Netflix Clone
           </Button>
@@ -201,7 +220,10 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
             variant="secondary" 
             size="sm" 
             className="bg-lovable-surface hover:bg-lovable-surface-hover text-lovable-text-secondary border border-lovable-border"
-            onClick={() => setInputValue("Create an Apple website clone")}
+            onClick={(e) => {
+              e.preventDefault();
+              setInputValue("Create an Apple website clone");
+            }}
           >
             🍎 Apple Clone
           </Button>
@@ -209,7 +231,10 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
             variant="secondary" 
             size="sm" 
             className="bg-lovable-surface hover:bg-lovable-surface-hover text-lovable-text-secondary border border-lovable-border"
-            onClick={() => setInputValue("Create a Google homepage clone")}
+            onClick={(e) => {
+              e.preventDefault();
+              setInputValue("Create a Google homepage clone");
+            }}
           >
             🔍 Google Clone
           </Button>
@@ -217,7 +242,10 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
             variant="secondary" 
             size="sm" 
             className="bg-lovable-surface hover:bg-lovable-surface-hover text-lovable-text-secondary border border-lovable-border"
-            onClick={() => setInputValue("Create a modern portfolio website")}
+            onClick={(e) => {
+              e.preventDefault();
+              setInputValue("Create a modern portfolio website");
+            }}
           >
             💼 Portfolio Site
           </Button>
