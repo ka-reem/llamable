@@ -21,6 +21,7 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
   const [inputValue, setInputValue] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiDialog, setShowApiDialog] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   useEffect(() => {
     const savedApiKey = localStorage.getItem('llama_api_key');
@@ -35,13 +36,60 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
     setShowApiDialog(false);
   };
 
-  const generateCodeWithAI = async (prompt: string) => {
+  const generateCodeWithAI = async (prompt: string, retryCount = 0) => {
     if (!apiKey) {
       setShowApiDialog(true);
       return;
     }
 
+    setIsGenerating(true);
+    
     try {
+      const isWebsiteClone = prompt.toLowerCase().includes('clone') || 
+                            prompt.toLowerCase().includes('website') || 
+                            prompt.toLowerCase().includes('site') ||
+                            prompt.toLowerCase().includes('html');
+
+      const systemPrompt = isWebsiteClone ? 
+        `You are a web developer. Create a complete HTML website clone. CRITICAL REQUIREMENTS:
+        
+        1. STRUCTURE: Generate a complete HTML document with DOCTYPE, html, head, and body tags
+        2. STYLING: Include ALL CSS styles in a <style> tag within the <head> section
+        3. INTERACTIVITY: Include ALL JavaScript in a <script> tag before closing </body>
+        4. COMPLETENESS: The HTML must be self-contained and render a complete, functional website
+        5. NO EXPLANATIONS: Return ONLY the HTML code, no text, no markdown, no comments outside the code
+        6. RESPONSIVE: Make it mobile-friendly with proper viewport meta tag
+        7. MODERN DESIGN: Use modern CSS features like flexbox, grid, animations, gradients
+        
+        Example structure:
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Website Title</title>
+            <style>
+                /* ALL CSS HERE */
+            </style>
+        </head>
+        <body>
+            <!-- ALL HTML CONTENT HERE -->
+            <script>
+                // ALL JAVASCRIPT HERE
+            </script>
+        </body>
+        </html>`
+        :
+        `You are a React/TypeScript developer. Generate clean, working code based on user requests.
+        
+        CRITICAL REQUIREMENTS:
+        1. Return ONLY code, no explanations or markdown
+        2. Use proper TypeScript interfaces
+        3. Include all necessary imports
+        4. Use Tailwind CSS for styling
+        5. Make components functional and interactive
+        6. NO text outside the code block`;
+
       const response = await fetch('https://api.llama.com/compat/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -52,31 +100,57 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
           model: 'Llama-4-Scout-17B-16E-Instruct-FP8',
           messages: [
             {
-              role: 'developer',
-              content: 'You are a helpful coding assistant. Generate clean, working React/TypeScript code based on user requests. Only return the code, no explanations.'
+              role: 'system',
+              content: systemPrompt
             },
             {
               role: 'user',
-              content: `Generate React/TypeScript code for: ${prompt}`
+              content: prompt
             }
           ],
-          max_tokens: 2000,
+          max_tokens: 4000,
+          temperature: 0.7,
         }),
       });
 
       const data = await response.json();
-      const generatedCode = data.choices[0]?.message?.content || '';
-      onCodeGenerated(generatedCode);
+      let generatedCode = data.choices[0]?.message?.content || '';
       
+      // Clean up the response - remove any markdown or explanations
+      if (generatedCode.includes('```')) {
+        const codeMatch = generatedCode.match(/```(?:html|javascript|typescript|jsx|tsx)?\n?([\s\S]*?)\n?```/);
+        if (codeMatch) {
+          generatedCode = codeMatch[1];
+        }
+      }
+      
+      // Validate HTML structure for website clones
+      if (isWebsiteClone) {
+        const hasDoctype = generatedCode.includes('<!DOCTYPE html>');
+        const hasHtmlTag = generatedCode.includes('<html');
+        const hasHeadTag = generatedCode.includes('<head>');
+        const hasBodyTag = generatedCode.includes('<body>');
+        
+        if (!hasDoctype || !hasHtmlTag || !hasHeadTag || !hasBodyTag) {
+          if (retryCount < 2) {
+            console.log(`Incomplete HTML structure detected. Retrying... (${retryCount + 1}/3)`);
+            return await generateCodeWithAI(prompt + " - MUST include complete HTML structure with DOCTYPE, html, head, and body tags", retryCount + 1);
+          }
+        }
+      }
+      
+      onCodeGenerated(generatedCode);
       return generatedCode;
     } catch (error) {
       console.error('Error generating code:', error);
-      return 'Error generating code. Please check your API key.';
+      return 'Error generating code. Please check your API key and try again.';
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isGenerating) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -89,17 +163,24 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
     const currentInput = inputValue;
     setInputValue("");
 
-    // Generate code with AI
-    const generatedCode = await generateCodeWithAI(currentInput);
-    
-    // Add AI response
-    const aiResponse: Message = {
+    // Add processing message
+    const processingMessage: Message = {
       id: (Date.now() + 1).toString(),
-      content: generatedCode || "I'll help you build that! Let me create it for you.",
+      content: "🔄 Generating code...",
       sender: "ai",
       timestamp: new Date(),
     };
-    setMessages(prev => [...prev, aiResponse]);
+    setMessages(prev => [...prev, processingMessage]);
+
+    // Generate code with AI
+    const generatedCode = await generateCodeWithAI(currentInput);
+    
+    // Replace processing message with actual response
+    setMessages(prev => prev.map(msg => 
+      msg.id === processingMessage.id 
+        ? { ...msg, content: generatedCode || "I'll help you build that! Let me create it for you." }
+        : msg
+    ));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -201,7 +282,7 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="create a lovable clone with a chat interface on the left hand side and then the website appears on the right hand side..."
+              placeholder="Create a website clone (e.g. Netflix, Apple, Google) or describe what you want to build..."
               className="bg-chat-input border-lovable-border text-lovable-text-primary placeholder:text-lovable-text-secondary pr-20"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
@@ -216,9 +297,14 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
           <Button 
             onClick={handleSendMessage}
             size="icon" 
-            className="bg-lovable-accent-orange hover:bg-lovable-accent-orange/80 text-white"
+            disabled={isGenerating}
+            className="bg-lovable-accent-orange hover:bg-lovable-accent-orange/80 text-white disabled:opacity-50"
           >
-            <Send className="h-4 w-4" />
+            {isGenerating ? (
+              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
         
@@ -228,33 +314,33 @@ const ChatInterface = ({ onCodeGenerated }: ChatInterfaceProps) => {
             variant="secondary" 
             size="sm" 
             className="bg-lovable-surface hover:bg-lovable-surface-hover text-lovable-text-secondary border border-lovable-border"
-            onClick={() => setInputValue("💰 Expense tracker")}
+            onClick={() => setInputValue("Create a Netflix website clone")}
           >
-            💰 Expense tracker
+            🎬 Netflix Clone
           </Button>
           <Button 
             variant="secondary" 
             size="sm" 
             className="bg-lovable-surface hover:bg-lovable-surface-hover text-lovable-text-secondary border border-lovable-border"
-            onClick={() => setInputValue("📊 Recharts dashboard")}
+            onClick={() => setInputValue("Create an Apple website clone")}
           >
-            📊 Recharts dashboard
+            🍎 Apple Clone
           </Button>
           <Button 
             variant="secondary" 
             size="sm" 
             className="bg-lovable-surface hover:bg-lovable-surface-hover text-lovable-text-secondary border border-lovable-border"
-            onClick={() => setInputValue("📱 Social media dashboard")}
+            onClick={() => setInputValue("Create a Google homepage clone")}
           >
-            📱 Social media dashboard
+            🔍 Google Clone
           </Button>
           <Button 
             variant="secondary" 
             size="sm" 
             className="bg-lovable-surface hover:bg-lovable-surface-hover text-lovable-text-secondary border border-lovable-border"
-            onClick={() => setInputValue("💪 Fitness tracker")}
+            onClick={() => setInputValue("Create a modern portfolio website")}
           >
-            💪 Fitness tracker
+            💼 Portfolio Site
           </Button>
         </div>
       </div>
