@@ -60,8 +60,17 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
         }
       }
       
+      // Update the preview with the generated code
       onCodeGenerated(generatedCode);
-      return generatedCode;
+      
+      // Return a friendly summary instead of the code
+      if (currentCode) {
+        return `✅ Updated your website! I've made the changes you requested. Check out the preview to see how it looks!`;
+      } else if (isWebsiteClone) {
+        return `🎉 Created your website clone! I've built a complete website based on your request. Take a look at the preview!`;
+      } else {
+        return `🚀 Built your website! I've created everything you asked for. The preview is ready for you to explore!`;
+      }
     } catch (error) {
       console.error('Error generating code:', error);
       return 'Error generating code. Please try again.';
