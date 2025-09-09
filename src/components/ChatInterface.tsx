@@ -22,6 +22,41 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
   const [inputValue, setInputValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const generateSummary = (prompt: string, currentCode: string, isWebsiteClone: boolean) => {
+    const lowerPrompt = prompt.toLowerCase();
+    
+    if (!currentCode) {
+      // New website creation
+      if (lowerPrompt.includes('clone') || lowerPrompt.includes('netflix') || lowerPrompt.includes('apple') || lowerPrompt.includes('google')) {
+        const siteName = lowerPrompt.includes('netflix') ? 'Netflix' : 
+                        lowerPrompt.includes('apple') ? 'Apple' : 
+                        lowerPrompt.includes('google') ? 'Google' : 'website';
+        return `🎬 Created a ${siteName} clone! Built a complete website with modern styling and interactive elements.`;
+      } else if (lowerPrompt.includes('portfolio')) {
+        return `💼 Built your portfolio website! Created sections for about, skills, experience, and projects with a modern design.`;
+      } else {
+        return `🚀 Created your website! Built everything you requested with a complete HTML structure.`;
+      }
+    } else {
+      // Modifications to existing code
+      if (lowerPrompt.includes('color') || lowerPrompt.includes('black') || lowerPrompt.includes('white') || lowerPrompt.includes('red') || lowerPrompt.includes('blue')) {
+        return `🎨 Updated the color scheme! Changed the website colors as requested.`;
+      } else if (lowerPrompt.includes('background')) {
+        return `🖼️ Modified the background! Updated the background styling throughout the site.`;
+      } else if (lowerPrompt.includes('add') && lowerPrompt.includes('ceo')) {
+        return `👔 Added CEO information! Updated your profile to include executive experience.`;
+      } else if (lowerPrompt.includes('text') || lowerPrompt.includes('content') || lowerPrompt.includes('title')) {
+        return `✏️ Updated the content! Modified text and titles as requested.`;
+      } else if (lowerPrompt.includes('layout') || lowerPrompt.includes('design')) {
+        return `🎯 Redesigned the layout! Updated the website structure and design elements.`;
+      } else if (lowerPrompt.includes('button') || lowerPrompt.includes('link')) {
+        return `🔘 Enhanced interactions! Updated buttons and navigation elements.`;
+      } else {
+        return `✅ Updated your website! Made the requested changes - check the preview to see what's new!`;
+      }
+    }
+  };
+
   const generateCodeWithAI = async (prompt: string, retryCount = 0) => {
     setIsGenerating(true);
     
@@ -63,14 +98,8 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
       // Update the preview with the generated code
       onCodeGenerated(generatedCode);
       
-      // Return a friendly summary instead of the code
-      if (currentCode) {
-        return `✅ Updated your website! I've made the changes you requested. Check out the preview to see how it looks!`;
-      } else if (isWebsiteClone) {
-        return `🎉 Created your website clone! I've built a complete website based on your request. Take a look at the preview!`;
-      } else {
-        return `🚀 Built your website! I've created everything you asked for. The preview is ready for you to explore!`;
-      }
+      // Return a specific summary based on the request
+      return generateSummary(prompt, currentCode, isWebsiteClone);
     } catch (error) {
       console.error('Error generating code:', error);
       return 'Error generating code. Please try again.';
