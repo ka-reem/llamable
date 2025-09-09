@@ -1,4 +1,30 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
+
+const enhanceHtml = (code: string) => {
+  const safeStyle = `<style>
+  a[href="#"], a[href=""], a:not([href]), a[aria-disabled="true"] { pointer-events: none !important; opacity: 0.6; cursor: not-allowed; }
+  button[disabled], .disabled { pointer-events: none; opacity: 0.6; cursor: not-allowed; }
+  </style>`;
+  const safeScript = `<script>
+  document.addEventListener('click', function(e) {
+    var target = e.target;
+    var a = target && target.closest ? target.closest('a') : null;
+    if (!a) return;
+    var href = (a.getAttribute('href') || '').trim();
+    if (!href || href === '#' || href.toLowerCase().startsWith('javascript:')) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+  </script>`;
+
+  if (code.includes('</head>')) {
+    return code.replace('</head>', `${safeStyle}\n${safeScript}\n</head>`);
+  }
+  if (code.includes('</body>')) {
+    return `${safeStyle}` + code.replace('</body>', `${safeScript}</body>`);
+  }
+  return `${safeStyle}${code}${safeScript}`;
+};
 
 interface PreviewAreaProps {
   generatedCode: string;
@@ -67,7 +93,7 @@ const PreviewArea = ({ generatedCode, showCode = false }: PreviewAreaProps) => {
       <div className="flex-1 p-4 bg-white">
         {generatedCode ? (
           <iframe
-            srcDoc={generatedCode}
+            srcDoc={enhanceHtml(generatedCode)}
             className="w-full h-full border border-gray-200 rounded-lg"
             title="Generated Website Preview"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"

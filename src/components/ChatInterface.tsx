@@ -28,9 +28,12 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
     try {
       const { data, error } = await supabase.functions.invoke('generate-code', {
         body: { 
-          prompt: currentCode 
-            ? `${prompt}\n\nCurrent code to build upon:\n${currentCode}`
-            : prompt 
+          prompt: currentCode
+            ? `You are a code transformer. Keep ALL existing code and only modify what's required. Always return the COMPLETE updated code in a single HTML document that includes <!DOCTYPE html>, <html>, <head>, and <body>.
+\nUser request:\n${prompt}
+\nCurrent code to build upon:\n${currentCode}`
+            : `You are a code transformer. Always return a COMPLETE single HTML document that includes <!DOCTYPE html>, <html>, <head>, and <body>.
+\nUser request:\n${prompt}`
         }
       });
 
@@ -112,9 +115,19 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
     <div className="flex flex-col h-full bg-chat-background">
       {/* Chat Header */}
       <div className="p-4 border-b border-lovable-border flex items-center justify-between">
-        <div>
-          <h2 className="text-lovable-text-primary font-semibold">Chat</h2>
-          <p className="text-lovable-text-secondary text-sm">Build something amazing</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-lovable-text-primary font-semibold">Chat</h2>
+            <p className="text-lovable-text-secondary text-sm">Build something amazing</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-lovable-text-secondary hover:text-lovable-text-primary"
+            onClick={() => { setMessages([]); onCodeGenerated(""); }}
+          >
+            <Plus className="h-4 w-4 mr-1" /> New Project
+          </Button>
         </div>
       </div>
 
