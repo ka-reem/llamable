@@ -1,29 +1,61 @@
 
 const enhanceHtml = (code: string) => {
-  const safeStyle = `<style>
-  a[href="#"], a[href=""], a:not([href]), a[aria-disabled="true"] { pointer-events: none !important; opacity: 0.6; cursor: not-allowed; }
-  button[disabled], .disabled { pointer-events: none; opacity: 0.6; cursor: not-allowed; }
-  </style>`;
-  const safeScript = `<script>
-  document.addEventListener('click', function(e) {
-    var target = e.target;
-    var a = target && target.closest ? target.closest('a') : null;
-    if (!a) return;
-    var href = (a.getAttribute('href') || '').trim();
-    if (!href || href === '#' || href.toLowerCase().startsWith('javascript:')) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, true);
+  const smartButtonScript = `<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Prevent form submissions
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        return false;
+      });
+    });
+    
+    // Handle all links and buttons intelligently
+    const links = document.querySelectorAll('a, button');
+    links.forEach(element => {
+      element.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        const onclick = this.getAttribute('onclick');
+        
+        // If it's a real anchor link (starting with #), allow it
+        if (href && href.startsWith('#')) {
+          return; // Allow anchor navigation
+        }
+        
+        // If it's an external link, open in new tab
+        if (href && (href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:'))) {
+          e.preventDefault();
+          window.open(href, '_blank');
+          return;
+        }
+        
+        // If it has JavaScript or is trying to navigate to another page, prevent it
+        if (href && !href.startsWith('#') && href !== '#' && href !== '') {
+          e.preventDefault();
+          // Smooth scroll to top as feedback
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        
+        // For buttons without href, allow if they have valid onclick or just do nothing
+        if (this.tagName === 'BUTTON' && !onclick) {
+          // Just provide visual feedback
+          this.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            this.style.transform = '';
+          }, 150);
+        }
+      });
+    });
+  });
   </script>`;
 
-  if (code.includes('</head>')) {
-    return code.replace('</head>', `${safeStyle}\n${safeScript}\n</head>`);
-  }
+  // Insert the script before the closing body tag
   if (code.includes('</body>')) {
-    return `${safeStyle}` + code.replace('</body>', `${safeScript}</body>`);
+    return code.replace('</body>', smartButtonScript + '</body>');
   }
-  return `${safeStyle}${code}${safeScript}`;
+  return code + smartButtonScript;
 };
 
 interface PreviewAreaProps {

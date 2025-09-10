@@ -57,7 +57,8 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
     }
   };
 
-  const generateCodeWithAI = async (prompt: string, retryCount = 0) => {
+  const generateCodeWithAI = async (prompt: string, retryCount = 0): Promise<{ summary: string; tokens?: number; duration: number }> => {
+    const startTime = Date.now();
     setIsGenerating(true);
     
     try {
@@ -74,11 +75,13 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
 
       if (error) {
         console.error('Edge function error:', error);
-        return 'Error generating code. Please try again.';
+        const duration = Date.now() - startTime;
+        return { summary: 'Error generating code. Please try again.', duration };
       }
 
       let generatedCode = data.code || '';
       const isWebsiteClone = data.isWebsiteClone || false;
+      const tokens = data.tokens;
       
       // Validate HTML structure for website clones
       if (isWebsiteClone) {
@@ -99,10 +102,13 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
       onCodeGenerated(generatedCode);
       
       // Return a specific summary based on the request
-      return generateSummary(prompt, currentCode, isWebsiteClone);
+      const duration = Date.now() - startTime;
+      const summary = generateSummary(prompt, currentCode, isWebsiteClone);
+      return { summary, tokens, duration };
     } catch (error) {
       console.error('Error generating code:', error);
-      return 'Error generating code. Please try again.';
+      const duration = Date.now() - startTime;
+      return { summary: 'Error generating code. Please try again.', duration };
     } finally {
       setIsGenerating(false);
     }
@@ -132,12 +138,19 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
     setMessages(prev => [...prev, processingMessage]);
 
     // Generate code with AI
-    const generatedCode = await generateCodeWithAI(currentInput);
+    const result = await generateCodeWithAI(currentInput);
+    
+    // Format timing info
+    const timing = result.duration < 1000 
+      ? `${result.duration}ms` 
+      : `${(result.duration / 1000).toFixed(1)}s`;
+    
+    const summaryWithStats = `${result.summary}\n\n*Generated in ${timing}${result.tokens ? ` • ${result.tokens.toLocaleString()} tokens` : ''}*`;
     
     // Replace processing message with actual response
     setMessages(prev => prev.map(msg => 
       msg.id === processingMessage.id 
-        ? { ...msg, content: generatedCode || "I'll help you build that! Let me create it for you." }
+        ? { ...msg, content: summaryWithStats || "I'll help you build that! Let me create it for you." }
         : msg
     ));
   };

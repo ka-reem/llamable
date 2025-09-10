@@ -68,6 +68,13 @@ Deno.serve(async (req) => {
       
       🎯 INSPIRATION: Think Stripe, Apple, Vercel, Linear - clean, modern, premium feel
       
+      🔗 NAVIGATION RULES:
+      - If you create buttons/links that navigate to other pages, you MUST create those pages too
+      - Use anchor links (#section) for same-page navigation only
+      - For multi-page sites, create a complete website with all referenced pages
+      - If you can't create full pages, make buttons purely decorative (no href/onclick)
+      - External links should open in new tabs
+      
       Structure:
       <!DOCTYPE html>
       <html lang="en">
@@ -130,6 +137,7 @@ Deno.serve(async (req) => {
 
     const data = await response.json()
     let generatedCode = data.choices[0]?.message?.content || '';
+    const tokens = data.usage?.total_tokens;
     
     // Clean up the response - remove any markdown or explanations
     if (generatedCode.includes('```')) {
@@ -142,7 +150,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         code: generatedCode,
-        isWebsiteClone 
+        isWebsiteClone,
+        tokens 
       }),
       { 
         headers: { 
