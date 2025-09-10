@@ -11,6 +11,7 @@ interface Message {
   sender: "user" | "ai";
   timestamp: Date;
   meta?: string;
+  image?: string;
 }
 
 interface ChatInterfaceProps {
@@ -22,6 +23,7 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   const generateSummary = (prompt: string, currentCode: string, isWebsiteClone: boolean) => {
     const lowerPrompt = prompt.toLowerCase();
@@ -58,20 +60,26 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
     }
   };
 
-  const generateCodeWithAI = async (prompt: string, retryCount = 0): Promise<{ summary: string; tokens?: number; duration: number }> => {
+  const generateCodeWithAI = async (prompt: string, image?: string, retryCount = 0): Promise<{ summary: string; tokens?: number; duration: number }> => {
     const startTime = Date.now();
     setIsGenerating(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-code', {
-        body: { 
-          prompt: currentCode
-            ? `You are a code transformer. Keep ALL existing code and only modify what's required. Always return the COMPLETE updated code in a single HTML document that includes <!DOCTYPE html>, <html>, <head>, and <body>.
+      const requestBody: any = {
+        prompt: currentCode
+          ? `You are a code transformer. Keep ALL existing code and only modify what's required. Always return the COMPLETE updated code in a single HTML document that includes <!DOCTYPE html>, <html>, <head>, and <body>.
 \nUser request:\n${prompt}
 \nCurrent code to build upon:\n${currentCode}`
-            : `You are a code transformer. Always return a COMPLETE single HTML document that includes <!DOCTYPE html>, <html>, <head>, and <body>.
+          : `You are a code transformer. Always return a COMPLETE single HTML document that includes <!DOCTYPE html>, <html>, <head>, and <body>.
 \nUser request:\n${prompt}`
-        }
+      };
+
+      if (image) {
+        requestBody.image = image;
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-code', {
+        body: requestBody
       });
 
       if (error) {
@@ -94,7 +102,7 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
         if (!hasDoctype || !hasHtmlTag || !hasHeadTag || !hasBodyTag) {
           if (retryCount < 2) {
             console.log(`Incomplete HTML structure detected. Retrying... (${retryCount + 1}/3)`);
-            return await generateCodeWithAI(prompt + " - MUST include complete HTML structure with DOCTYPE, html, head, and body tags", retryCount + 1);
+            return await generateCodeWithAI(prompt + " - MUST include complete HTML structure with DOCTYPE, html, head, and body tags", image, retryCount + 1);
           }
         }
       }
@@ -115,19 +123,34 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
     }
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setUploadedImage(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isGenerating) return;
+    if ((!inputValue.trim() && !uploadedImage) || isGenerating) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
-      content: inputValue,
+      content: inputValue || (uploadedImage ? "Analyze this screenshot and create a website clone" : ""),
       sender: "user",
       timestamp: new Date(),
+      image: uploadedImage || undefined,
     };
 
     setMessages(prev => [...prev, newMessage]);
     const currentInput = inputValue;
+    const currentImage = uploadedImage;
     setInputValue("");
+    setUploadedImage(null);
 
     // Add processing message
     const processingMessage: Message = {
@@ -139,7 +162,7 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
     setMessages(prev => [...prev, processingMessage]);
 
     // Generate code with AI
-    const result = await generateCodeWithAI(currentInput);
+    const result = await generateCodeWithAI(currentInput, currentImage || undefined);
     
     // Format timing info for meta line
     const timing = result.duration < 1000 
@@ -219,6 +242,13 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
                       : "bg-chat-message-ai text-lovable-text-primary"
                   }`}
                 >
+                  {message.image && (
+                    <img 
+                      src={message.image} 
+                      alt="Uploaded screenshot" 
+                      className="w-full rounded-lg mb-2 border border-lovable-border"
+                    />
+                  )}
                   <p className="text-sm">{message.content}</p>
                   {message.meta && (
                     <p className="text-[10px] text-lovable-text-secondary mt-1">{message.meta}</p>
@@ -244,13 +274,26 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Create a website clone (e.g. Netflix, Apple, Google) or describe what you want to build..."
-              className="bg-chat-input border-lovable-border text-lovable-text-primary placeholder:text-lovable-text-secondary pr-20"
+              placeholder={uploadedImage ? "Describe what you want me to do with this screenshot..." : "Upload a screenshot or describe what you want to build..."}
+              className={`bg-chat-input border-lovable-border text-lovable-text-primary placeholder:text-lovable-text-secondary pr-20 ${uploadedImage ? 'pl-12' : ''}`}
             />
+            {uploadedImage && (
+              <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                <img src={uploadedImage} alt="Upload preview" className="w-8 h-8 rounded object-cover border border-lovable-border" />
+              </div>
+            )}
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-lovable-text-secondary hover:text-lovable-text-primary">
-                <Paperclip className="h-3 w-3" />
-              </Button>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-lovable-text-secondary hover:text-lovable-text-primary">
+                  <Paperclip className="h-3 w-3" />
+                </Button>
+              </label>
               <Button variant="ghost" size="icon" className="h-6 w-6 text-lovable-text-secondary hover:text-lovable-text-primary">
                 <Mic className="h-3 w-3" />
               </Button>

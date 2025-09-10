@@ -8,11 +8,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json()
+    const { prompt, image } = await req.json()
     
-    if (!prompt) {
+    if (!prompt && !image) {
       return new Response(
-        JSON.stringify({ error: 'Prompt is required' }),
+        JSON.stringify({ error: 'Prompt or image is required' }),
         { headers: { "Content-Type": "application/json" }, status: 400 }
       )
     }
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
                           prompt.toLowerCase().includes('html');
 
     const systemPrompt = isWebsiteClone ? 
-      `You are an EXPERT web designer and developer who creates STUNNING, PREMIUM websites. Create a complete HTML website that looks AMAZING and PROFESSIONAL. CRITICAL REQUIREMENTS:
+      `You are an EXPERT web designer and developer who creates STUNNING, PREMIUM websites. ${image ? 'ANALYZE the provided screenshot/image and recreate it as a modern, functional website while maintaining the visual design, layout, colors, and overall aesthetic.' : ''} Create a complete HTML website that looks AMAZING and PROFESSIONAL. CRITICAL REQUIREMENTS:
 
       🎨 DESIGN EXCELLENCE:
       - Use BEAUTIFUL color palettes (gradients, modern colors, NOT basic colors)
@@ -314,7 +314,7 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'Llama-4-Scout-17B-16E-Instruct-FP8',
+        model: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
         messages: [
           {
             role: 'system',
@@ -322,7 +322,18 @@ Deno.serve(async (req) => {
           },
           {
             role: 'user',
-            content: prompt
+            content: image ? [
+              {
+                type: 'text',
+                text: prompt || 'Analyze this screenshot and create a website clone that matches the design, layout, colors, and overall aesthetic.'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: image
+                }
+              }
+            ] : prompt
           }
         ],
         max_tokens: 4000,
