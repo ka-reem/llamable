@@ -42,6 +42,25 @@ Deno.serve(async (req) => {
       - Create VISUALLY STRIKING layouts with proper whitespace and hierarchy
       - Include BEAUTIFUL backgrounds: gradients, patterns, or subtle textures
       
+      🚀 CREATIVE DESIGN REQUIREMENTS:
+      - Hero section MUST be creative: split-screen, angled backgrounds, blob shapes, or full-screen gradient animations
+      - Use CSS shapes and clip-path: diagonal section dividers, wavy SVG separators between sections
+      - Add background animations: subtle moving gradients, floating blobs, or parallax scroll effects
+      - Custom typography: Use 2 Google Fonts via <link> - one display font, one body font
+      - Include interactive elements: accordion, tabs, modal, or animated buttons in pure JS/CSS
+      - Non-standard layouts: masonry grid, card carousel, timeline, or split-columns with sticky elements
+      - Rich hover effects: cards tilt, text underline animations, buttons with ripple effects
+      - Consider dark/light mode toggle with JavaScript
+      - Break from rectangles: use rounded, angled, or irregular container shapes
+      - Navbar should be well-spaced, modern, with proper padding and typography
+      
+      🎯 LAYOUT STRUCTURE:
+      - Navbar: Clean, spacious, modern design with proper spacing between items
+      - Hero: Take up full viewport height with creative design elements
+      - Sections: Use creative dividers, varied layouts, interesting shapes
+      - Cards: Use shadows, hover effects, unique shapes (not just rectangles)
+      - Buttons: Animated, with hover states and modern styling
+      
       🚀 MODERN FEATURES:
       - Responsive design that looks perfect on all devices
       - CSS Grid and Flexbox for perfect layouts
@@ -89,36 +108,190 @@ Deno.serve(async (req) => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Premium Website</title>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+          <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
           <style>
               :root {
-                  /* Define beautiful color scheme with CSS custom properties */
+                  /* Beautiful color scheme with CSS custom properties */
+                  --primary: #6366f1;
+                  --secondary: #8b5cf6;
+                  --accent: #06b6d4;
+                  --text: #1e293b;
+                  --bg: #ffffff;
               }
               html { scroll-behavior: smooth; }
-              /* PREMIUM CSS WITH MODERN EFFECTS */
+              body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+              .display-font { font-family: 'Playfair Display', serif; }
+              
+              /* MODERN NAVBAR WITH PROPER SPACING */
+              nav { 
+                  display: flex; 
+                  justify-content: space-between; 
+                  align-items: center; 
+                  padding: 1rem 2rem; 
+                  background: rgba(255,255,255,0.95);
+                  backdrop-filter: blur(10px);
+                  position: fixed;
+                  top: 0;
+                  width: 100%;
+                  z-index: 1000;
+                  box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+              }
+              nav a { 
+                  margin: 0 1.5rem; 
+                  text-decoration: none; 
+                  color: var(--text);
+                  font-weight: 500;
+                  transition: all 0.3s ease;
+                  position: relative;
+              }
+              nav a:hover { color: var(--primary); transform: translateY(-2px); }
+              
+              /* CREATIVE HERO SECTION */
+              .hero { 
+                  height: 100vh; 
+                  background: linear-gradient(135deg, var(--primary), var(--secondary));
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  position: relative;
+                  overflow: hidden;
+              }
+              
+              /* ANIMATED BACKGROUND ELEMENTS */
+              .floating-blob {
+                  position: absolute;
+                  border-radius: 50%;
+                  background: rgba(255,255,255,0.1);
+                  animation: float 6s ease-in-out infinite;
+              }
+              
+              @keyframes float {
+                  0%, 100% { transform: translateY(0px) rotate(0deg); }
+                  50% { transform: translateY(-20px) rotate(180deg); }
+              }
+              
+              /* SECTION DIVIDERS */
+              .wave-divider {
+                  position: relative;
+                  background: white;
+                  clip-path: polygon(0 20px, 100% 0, 100% 100%, 0 100%);
+                  margin-top: -20px;
+              }
+              
+              /* HOVER EFFECTS */
+              .card {
+                  background: white;
+                  border-radius: 20px;
+                  padding: 2rem;
+                  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                  transition: all 0.3s ease;
+                  transform-style: preserve-3d;
+              }
+              .card:hover {
+                  transform: translateY(-10px) rotateX(5deg);
+                  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+              }
+              
+              /* BUTTON ANIMATIONS */
+              .btn {
+                  background: linear-gradient(135deg, var(--primary), var(--accent));
+                  color: white;
+                  padding: 1rem 2rem;
+                  border: none;
+                  border-radius: 50px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  position: relative;
+                  overflow: hidden;
+                  transition: all 0.3s ease;
+              }
+              .btn:hover { transform: scale(1.05); }
+              .btn::before {
+                  content: '';
+                  position: absolute;
+                  top: 0; left: -100%;
+                  width: 100%; height: 100%;
+                  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                  transition: left 0.5s;
+              }
+              .btn:hover::before { left: 100%; }
+              
+              /* PREMIUM STYLING */
+              section { padding: 5rem 2rem; }
+              .container { max-width: 1200px; margin: 0 auto; }
+              h1, h2, h3 { font-family: 'Playfair Display', serif; }
+              .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
           </style>
       </head>
       <body>
-          <!-- NAVIGATION BAR -->
+          <!-- MODERN NAVIGATION -->
           <nav>
-              <a href="#home">Home</a>
-              <a href="#about">About</a>
-              <a href="#services">Services</a>
-              <!-- etc. -->
+              <div class="display-font" style="font-size: 1.5rem; font-weight: 700;">Brand</div>
+              <div>
+                  <a href="#home">Home</a>
+                  <a href="#about">About</a>
+                  <a href="#services">Services</a>
+                  <a href="#contact">Contact</a>
+              </div>
           </nav>
           
-          <!-- HERO SECTION -->
-          <section id="home">Hero Content</section>
+          <!-- CREATIVE HERO SECTION -->
+          <section id="home" class="hero">
+              <div class="floating-blob" style="width: 200px; height: 200px; top: 10%; left: 10%;"></div>
+              <div class="floating-blob" style="width: 150px; height: 150px; top: 60%; right: 15%; animation-delay: 2s;"></div>
+              <div style="text-align: center; color: white; z-index: 10;">
+                  <h1 class="display-font" style="font-size: 4rem; margin-bottom: 1rem;">Welcome</h1>
+                  <p style="font-size: 1.25rem; margin-bottom: 2rem;">Experience the future of web design</p>
+                  <button class="btn">Get Started</button>
+              </div>
+          </section>
           
-          <!-- ALL NAVBAR SECTIONS ON MAIN PAGE -->
-          <section id="about">About Content</section>
-          <section id="services">Services Content</section>
+          <!-- SECTIONS WITH CREATIVE LAYOUTS -->
+          <section id="about" class="wave-divider">
+              <div class="container">
+                  <h2 class="display-font" style="text-align: center; font-size: 3rem; margin-bottom: 3rem;">About Us</h2>
+                  <div class="grid">
+                      <div class="card">
+                          <h3>Innovation</h3>
+                          <p>Content about innovation</p>
+                      </div>
+                      <div class="card">
+                          <h3>Quality</h3>
+                          <p>Content about quality</p>
+                      </div>
+                      <div class="card">
+                          <h3>Excellence</h3>
+                          <p>Content about excellence</p>
+                      </div>
+                  </div>
+              </div>
+          </section>
           
-          <!-- FOOTER WITH COPYRIGHT 2025 -->
-          <footer>© 2025 Company Name</footer>
+          <section id="services">
+              <div class="container">
+                  <h2 class="display-font" style="text-align: center; font-size: 3rem; margin-bottom: 3rem;">Services</h2>
+                  <!-- Add your services content -->
+              </div>
+          </section>
+          
+          <section id="contact">
+              <div class="container">
+                  <h2 class="display-font" style="text-align: center; font-size: 3rem; margin-bottom: 3rem;">Contact</h2>
+                  <!-- Add your contact content -->
+              </div>
+          </section>
+          
+          <!-- FOOTER WITH 2025 COPYRIGHT -->
+          <footer style="background: #1e293b; color: white; text-align: center; padding: 2rem;">
+              <p>&copy; 2025 Company Name. All rights reserved.</p>
+          </footer>
           
           <script>
               // SMOOTH INTERACTIONS AND ANIMATIONS
+              document.addEventListener('DOMContentLoaded', function() {
+                  // Add any interactive JavaScript here
+                  console.log('Website loaded successfully!');
+              });
           </script>
       </body>
       </html>`
