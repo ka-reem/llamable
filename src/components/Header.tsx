@@ -18,7 +18,7 @@ const Header = ({ showCode = false, onToggleView }: HeaderProps) => {
         </div>
       </div>
       
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4 pr-4">
         {onToggleView && (
           <Button
             variant="outline"
