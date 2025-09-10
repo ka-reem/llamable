@@ -58,6 +58,20 @@ Deno.serve(async (req) => {
       - Hero sections with compelling visuals
       - Footer with organized content and social links
       
+      🏗️ WEBSITE STRUCTURE REQUIREMENTS:
+      - ALWAYS create a navigation bar at the top
+      - Every section mentioned in the navbar MUST appear on the main page
+      - Use anchor links (#section-id) for navbar navigation to scroll to sections
+      - Structure: Header/Nav → Hero → Sections (About, Services, Portfolio, etc.) → Footer
+      - Each section should have proper IDs matching the navbar links
+      - Implement smooth scrolling: html { scroll-behavior: smooth; }
+      
+      🔗 NAVIGATION RULES:
+      - Navbar links should use href="#section-id" format (e.g., href="#about", href="#services")
+      - Create corresponding sections with matching IDs (e.g., <section id="about">)
+      - External links should open in new tabs (target="_blank")
+      - Copyright should always use year 2025
+      
       📱 TECHNICAL REQUIREMENTS:
       1. Complete HTML document with DOCTYPE, html, head, and body
       2. ALL CSS in <style> tag within <head> (use CSS custom properties for theming)
@@ -67,13 +81,6 @@ Deno.serve(async (req) => {
       6. NO explanations - ONLY the HTML code
       
       🎯 INSPIRATION: Think Stripe, Apple, Vercel, Linear - clean, modern, premium feel
-      
-      🔗 NAVIGATION RULES:
-      - If you create buttons/links that navigate to other pages, you MUST create those pages too
-      - Use anchor links (#section) for same-page navigation only
-      - For multi-page sites, create a complete website with all referenced pages
-      - If you can't create full pages, make buttons purely decorative (no href/onclick)
-      - External links should open in new tabs
       
       Structure:
       <!DOCTYPE html>
@@ -87,11 +94,29 @@ Deno.serve(async (req) => {
               :root {
                   /* Define beautiful color scheme with CSS custom properties */
               }
+              html { scroll-behavior: smooth; }
               /* PREMIUM CSS WITH MODERN EFFECTS */
           </style>
       </head>
       <body>
-          <!-- BEAUTIFUL, PROFESSIONAL HTML STRUCTURE -->
+          <!-- NAVIGATION BAR -->
+          <nav>
+              <a href="#home">Home</a>
+              <a href="#about">About</a>
+              <a href="#services">Services</a>
+              <!-- etc. -->
+          </nav>
+          
+          <!-- HERO SECTION -->
+          <section id="home">Hero Content</section>
+          
+          <!-- ALL NAVBAR SECTIONS ON MAIN PAGE -->
+          <section id="about">About Content</section>
+          <section id="services">Services Content</section>
+          
+          <!-- FOOTER WITH COPYRIGHT 2025 -->
+          <footer>© 2025 Company Name</footer>
+          
           <script>
               // SMOOTH INTERACTIONS AND ANIMATIONS
           </script>
