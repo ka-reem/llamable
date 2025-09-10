@@ -1,326 +1,148 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
+// Some environments running TypeScript checks may not have Deno types available.
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined
+  }
+  serve?: (handler: (req: Request) => Promise<Response> | Response) => void
+}
+
 console.log("Generate code function started!")
 
-Deno.serve(async (req) => {
+Deno.serve!(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } })
   }
 
   try {
-    const { prompt, image } = await req.json()
+  const { prompt, image } = await req.json()
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+  const steps: Array<{ ts: string; message: string }> = []
+  const push = (msg: string) => steps.push({ ts: new Date().toISOString(), message: msg })
+  push('received request')
     
     if (!prompt && !image) {
+      push('validation failed: missing prompt and image')
       return new Response(
-        JSON.stringify({ error: 'Prompt or image is required' }),
+        JSON.stringify({ error: 'Prompt or image is required', runId, steps }),
         { headers: { "Content-Type": "application/json" }, status: 400 }
       )
     }
 
     const apiKey = Deno.env.get('LLAMA_API_KEY')
     if (!apiKey) {
+      push('configuration error: missing LLAMA_API_KEY')
       return new Response(
-        JSON.stringify({ error: 'LLAMA_API_KEY not configured' }),
+        JSON.stringify({ error: 'LLAMA_API_KEY not configured', runId, steps }),
         { headers: { "Content-Type": "application/json" }, status: 500 }
       )
     }
 
-    // Determine if this is a website clone request
-    const isWebsiteClone = prompt.toLowerCase().includes('clone') || 
-                          prompt.toLowerCase().includes('website') || 
-                          prompt.toLowerCase().includes('site') ||
-                          prompt.toLowerCase().includes('html');
+  // Use a single, clearer system prompt that always asks for a self-contained HTML document
+  // (the user asked that all outputs be HTML-only so the preview iframe can render them)
+  const systemPrompt = `You are Llamable, an assistant that returns a single, self-contained HTML document (no explanations, no markdown, no surrounding text).
 
-    const systemPrompt = isWebsiteClone ? 
-      `You are an EXCEPTIONAL MASTER web designer and developer who creates ABSOLUTELY STUNNING, WORLD-CLASS websites that WIN AWARDS. ${image ? 'METICULOUSLY ANALYZE the provided screenshot/image and recreate it as a cutting-edge, fully functional website while preserving AND ENHANCING the visual design, layout, colors, typography, spacing, and overall aesthetic. EXCEED the original design quality.' : ''} 
+  IMPORTANT OUTPUT RULES:
+  - Return EXACTLY one complete HTML document starting with <!DOCTYPE html> and ending with </html>.
+  - Put all CSS inside a single <style> tag in the <head> and all JavaScript inside a single <script> tag just before </body>.
+  - Do NOT output TypeScript, JSX, React components, or any framework-specific code.
+  - Do NOT include any explanatory text or code fences; the response must be raw HTML only.
 
-      🌟 YOUR MISSION: Create a BREATHTAKING HTML website that is VISUALLY SPECTACULAR and TECHNICALLY FLAWLESS. This should be a PREMIUM, PROFESSIONAL website that would cost $10,000+ to develop. GO ABOVE AND BEYOND - this needs to be EXTRAORDINARY. 
+  RENDERING / UX REQUIREMENTS:
+  - Mobile-first responsive design; it must render cleanly inside an iframe.
+  - Use semantic HTML and accessible attributes (aria-*, alt text on images, labels for forms).
+  - Include a top navigation bar with 3–5 anchor links that map to section IDs on the page.
+  - External links must include target="_blank" rel="noopener noreferrer".
+  - Include copyright year 2025 in the footer.
 
-      ⭐ COMPREHENSIVE CONTENT REQUIREMENTS:
-      - Generate MASSIVE, DETAILED websites (aim for 3000+ lines of HTML/CSS/JS)
-      - Create AT LEAST 15-25 sections with RICH, MEANINGFUL content
-      - Add multiple interactive components: image galleries, testimonials carousels, pricing tables, FAQ accordions, team member cards, feature showcases, portfolio grids, contact forms, newsletter signups, social proof sections, stats counters, timeline components
-      - Include EXTENSIVE content: multiple paragraphs per section, detailed descriptions, comprehensive feature lists, client testimonials, case studies, team bios, service details, pricing plans, FAQ entries
-      - Build interactive elements: filterable galleries, tabbed content, expandable sections, modal windows, image sliders, progress bars, animated counters, scroll-triggered animations
-      - Create deep, engaging user experiences that keep visitors engaged for minutes, not seconds
-      - Use EVERY available token to maximize website depth and interactivity
-      
-      CRITICAL REQUIREMENTS:
+  PRACTICAL CONSTRAINTS:
+  - Prefer clarity and a usable, visually-pleasing design over extremely large repetitive sites.
+  - If an image URL is provided by the user, include it in the page (use the provided URL as the image src).
+  - Keep markup pragmatic and reasonably sized (avoid thousands of near-duplicate sections).
 
-      🎨 EXTRAORDINARY DESIGN EXCELLENCE:
-      - Use EXCEPTIONAL color palettes: sophisticated gradients, harmonious color schemes, premium color combinations
-      - Implement MESMERIZING visual effects: advanced glassmorphism, modern neumorphism, layered shadows, ambient lighting effects
-      - Add CAPTIVATING animations: CSS keyframes, scroll-triggered effects, entrance animations, parallax scrolling, floating elements
-      - Use PREMIUM typography: Google Fonts combinations, perfect font pairing, multiple weights, custom letter spacing
-      - Create BREATHTAKING layouts: advanced CSS Grid, creative positioning, perfect spacing ratios, golden ratio proportions
-      - Include STUNNING backgrounds: animated gradients, particle effects, geometric patterns, ambient textures, morphing shapes
-      
-      🚀 REVOLUTIONARY CREATIVE REQUIREMENTS:
-      - Hero section MUST be SPECTACULAR: full-screen immersive experiences, 3D CSS transforms, animated geometric shapes, particle systems, morphing backgrounds
-      - Advanced CSS techniques: complex clip-paths, CSS-only animations, transform-style: preserve-3d, perspective effects, filter: blur/brightness animations
-      - DYNAMIC background animations: CSS gradient animations, floating geometric shapes, interactive cursor effects, scroll-based parallax layers
-      - MASTERFUL typography: Perfect Google Fonts pairing (display + body), custom font sizes, animated text reveals, typewriter effects, text shadows
-      - ADVANCED interactive elements: multi-step forms, image carousels, filterable portfolios, animated counters, timeline scrolling, modal galleries
-      - INNOVATIVE layouts: broken grid systems, asymmetrical designs, overlapping sections, floating cards, magazine-style layouts, creative navigation
-      - STUNNING hover effects: 3D card flips, magnetic button effects, ripple animations, image zoom effects, color shifting, morphing shapes
-      - PREMIUM features: smooth page transitions, loading animations, scroll progress indicators, sticky navigation with background blur
-      - CREATIVE shapes: use CSS shapes, SVG paths, custom borders, irregular containers, flowing organic shapes
-      - MODERN navbar: glassmorphism effect, smooth transitions, proper spacing, mobile hamburger menu with animations
-      
-      🎯 LAYOUT STRUCTURE:
-      - Navbar: Clean, spacious, modern design with proper spacing between items
-      - Hero: Take up full viewport height with creative design elements
-      - Sections: Use creative dividers, varied layouts, interesting shapes
-      - Cards: Use shadows, hover effects, unique shapes (not just rectangles)
-      - Buttons: Animated, with hover states and modern styling
-      
-      🚀 MODERN FEATURES:
-      - Responsive design that looks perfect on all devices
-      - CSS Grid and Flexbox for perfect layouts
-      - Modern CSS features: backdrop-filter, clamp(), custom properties
-      - Smooth scrolling and scroll-triggered animations
-      - Interactive elements with engaging hover states
-      - Beautiful loading states and micro-animations
-      
-      ✨ UI/UX EXCELLENCE:
-      - Professional navigation with smooth transitions
-      - Cards with beautiful shadows and hover effects
-      - Buttons with premium styling and animations
-      - Forms with modern styling and validation states
-      - Hero sections with compelling visuals
-      - Footer with organized content and social links
-      
-      🏗️ WEBSITE STRUCTURE REQUIREMENTS:
-      - ALWAYS create a navigation bar at the top
-      - Limit navbar to 3–5 items maximum
-      - Every section mentioned in the navbar MUST appear on the main page
-      - Use anchor links (#section-id) for navbar navigation to scroll to sections
-      - Structure: Header/Nav → Hero → Sections (About, Services, Portfolio, etc.) → Footer
-      - Each section should have proper IDs matching the navbar links
-      - Implement smooth scrolling: html { scroll-behavior: smooth; }
-      
-      🔗 NAVIGATION RULES:
-      - Navbar links should use href="#section-id" format (e.g., href="#about", href="#services")
-      - Create corresponding sections with matching IDs (e.g., <section id="about">)
-      - External links should open in new tabs (target="_blank")
-      - Copyright should always use year 2025
-      
-      📱 TECHNICAL REQUIREMENTS:
-      1. Complete HTML document with DOCTYPE, html, head, and body
-      2. ALL CSS in <style> tag within <head> (use CSS custom properties for theming)
-      3. ALL JavaScript in <script> tag before closing </body>
-      4. Self-contained and fully functional
-      5. Mobile-first responsive design
-      6. NO explanations - ONLY the HTML code
-      
-      🎯 INSPIRATION: Think Stripe, Apple, Vercel, Linear - clean, modern, premium feel
-      
-      Structure:
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Premium Website</title>
-          <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-          <style>
-              :root {
-                  /* Beautiful color scheme with CSS custom properties */
-                  --primary: #6366f1;
-                  --secondary: #8b5cf6;
-                  --accent: #06b6d4;
-                  --text: #1e293b;
-                  --bg: #ffffff;
-              }
-              html { scroll-behavior: smooth; }
-              body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
-              .display-font { font-family: 'Playfair Display', serif; }
-              
-              /* MODERN NAVBAR WITH PROPER SPACING */
-              nav { 
-                  display: flex; 
-                  justify-content: space-between; 
-                  align-items: center; 
-                  padding: 1rem 2rem; 
-                  background: rgba(255,255,255,0.95);
-                  backdrop-filter: blur(10px);
-                  position: fixed;
-                  top: 0;
-                  width: 100%;
-                  z-index: 1000;
-                  box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-              }
-              nav a { 
-                  margin: 0 1.5rem; 
-                  text-decoration: none; 
-                  color: var(--text);
-                  font-weight: 500;
-                  transition: all 0.3s ease;
-                  position: relative;
-              }
-              nav a:hover { color: var(--primary); transform: translateY(-2px); }
-              
-              /* CREATIVE HERO SECTION */
-              .hero { 
-                  height: 100vh; 
-                  background: linear-gradient(135deg, var(--primary), var(--secondary));
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  position: relative;
-                  overflow: hidden;
-              }
-              
-              /* ANIMATED BACKGROUND ELEMENTS */
-              .floating-blob {
-                  position: absolute;
-                  border-radius: 50%;
-                  background: rgba(255,255,255,0.1);
-                  animation: float 6s ease-in-out infinite;
-              }
-              
-              @keyframes float {
-                  0%, 100% { transform: translateY(0px) rotate(0deg); }
-                  50% { transform: translateY(-20px) rotate(180deg); }
-              }
-              
-              /* SECTION DIVIDERS */
-              .wave-divider {
-                  position: relative;
-                  background: white;
-                  clip-path: polygon(0 20px, 100% 0, 100% 100%, 0 100%);
-                  margin-top: -20px;
-              }
-              
-              /* HOVER EFFECTS */
-              .card {
-                  background: white;
-                  border-radius: 20px;
-                  padding: 2rem;
-                  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                  transition: all 0.3s ease;
-                  transform-style: preserve-3d;
-              }
-              .card:hover {
-                  transform: translateY(-10px) rotateX(5deg);
-                  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-              }
-              
-              /* BUTTON ANIMATIONS */
-              .btn {
-                  background: linear-gradient(135deg, var(--primary), var(--accent));
-                  color: white;
-                  padding: 1rem 2rem;
-                  border: none;
-                  border-radius: 50px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  position: relative;
-                  overflow: hidden;
-                  transition: all 0.3s ease;
-              }
-              .btn:hover { transform: scale(1.05); }
-              .btn::before {
-                  content: '';
-                  position: absolute;
-                  top: 0; left: -100%;
-                  width: 100%; height: 100%;
-                  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-                  transition: left 0.5s;
-              }
-              .btn:hover::before { left: 100%; }
-              
-              /* PREMIUM STYLING */
-              section { padding: 5rem 2rem; }
-              .container { max-width: 1200px; margin: 0 auto; }
-              h1, h2, h3 { font-family: 'Playfair Display', serif; }
-              .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-          </style>
-      </head>
-      <body>
-          <!-- MODERN NAVIGATION -->
-          <nav>
-              <div class="display-font" style="font-size: 1.5rem; font-weight: 700;">Brand</div>
-              <div>
-                  <a href="#home">Home</a>
-                  <a href="#about">About</a>
-                  <a href="#services">Services</a>
-                  <a href="#contact">Contact</a>
-              </div>
-          </nav>
-          
-          <!-- CREATIVE HERO SECTION -->
-          <section id="home" class="hero">
-              <div class="floating-blob" style="width: 200px; height: 200px; top: 10%; left: 10%;"></div>
-              <div class="floating-blob" style="width: 150px; height: 150px; top: 60%; right: 15%; animation-delay: 2s;"></div>
-              <div style="text-align: center; color: white; z-index: 10;">
-                  <h1 class="display-font" style="font-size: 4rem; margin-bottom: 1rem;">Welcome</h1>
-                  <p style="font-size: 1.25rem; margin-bottom: 2rem;">Experience the future of web design</p>
-                  <button class="btn">Get Started</button>
-              </div>
-          </section>
-          
-          <!-- SECTIONS WITH CREATIVE LAYOUTS -->
-          <section id="about" class="wave-divider">
-              <div class="container">
-                  <h2 class="display-font" style="text-align: center; font-size: 3rem; margin-bottom: 3rem;">About Us</h2>
-                  <div class="grid">
-                      <div class="card">
-                          <h3>Innovation</h3>
-                          <p>Content about innovation</p>
-                      </div>
-                      <div class="card">
-                          <h3>Quality</h3>
-                          <p>Content about quality</p>
-                      </div>
-                      <div class="card">
-                          <h3>Excellence</h3>
-                          <p>Content about excellence</p>
-                      </div>
-                  </div>
-              </div>
-          </section>
-          
-          <section id="services">
-              <div class="container">
-                  <h2 class="display-font" style="text-align: center; font-size: 3rem; margin-bottom: 3rem;">Services</h2>
-                  <!-- Add your services content -->
-              </div>
-          </section>
-          
-          <section id="contact">
-              <div class="container">
-                  <h2 class="display-font" style="text-align: center; font-size: 3rem; margin-bottom: 3rem;">Contact</h2>
-                  <!-- Add your contact content -->
-              </div>
-          </section>
-          
-          <!-- FOOTER WITH 2025 COPYRIGHT -->
-          <footer style="background: #1e293b; color: white; text-align: center; padding: 2rem;">
-              <p>&copy; 2025 Company Name. All rights reserved.</p>
-          </footer>
-          
-          <script>
-              // SMOOTH INTERACTIONS AND ANIMATIONS
-              document.addEventListener('DOMContentLoaded', function() {
-                  // Add any interactive JavaScript here
-                  console.log('Website loaded successfully!');
-              });
-          </script>
-      </body>
-      </html>`
-      :
-      `You are a React/TypeScript developer. Generate clean, working code based on user requests.
-      
-      CRITICAL REQUIREMENTS:
-      1. Return ONLY code, no explanations or markdown
-      2. Use proper TypeScript interfaces
-      3. Include all necessary imports
-      4. Use Tailwind CSS for styling
-      5. Make components functional and interactive
-      6. NO text outside the code block`;
+  WHEN THE USER ASKS FOR A "CLONE" OR SUPPLIES A SCREENSHOT:
+  - Analyze the screenshot URL and produce an HTML page that approximates the visual layout, colors, typography, and spacing.
+  - Do not invent or output additional assets; reference the provided image URL.
 
-    const response = await fetch('https://api.llama.com/compat/v1/chat/completions', {
+  IN ALL CASES:
+  - The document must be self-contained and render without external build steps.
+  - Use Google Fonts if needed via <link> in the head.
+  - Use modern CSS (custom properties, flexbox/grid) but ensure broad browser compatibility.
+  - Do not return JSON or any wrapper; only the HTML document.
+  `;
+
+    // Stage 1: Prompt enhancer — ask the model to produce a short, focused enhanced prompt / design brief.
+    // IMPORTANT: ask for no chain-of-thought and return only the enhanced brief in plain text or JSON.
+    const enhancerSystem = `You are a prompt enhancer and design brief generator. Given a user's request and optional screenshot URL, return a concise, actionable enhanced prompt and a short design brief that a website generator can consume.
+
+    OUTPUT FORMAT RULES:
+    - Return only JSON with the following keys: enhanced_prompt (string), images (array of suggested image URLs or empty), videos (array of suggested video URLs or empty), notes (short string).
+    - Do NOT include chain-of-thought, internal reasoning, or any extra text outside the JSON.
+    - Keep values brief but specific: list hero elements, sections to include, suggested image placements, color palette (3 colors), fonts, and key animations/interactions.
+    `;
+
+    const enhancerUserContent = image
+      ? {
+          role: 'user',
+          content: [
+            { type: 'text', text: (prompt || 'Create a website from this screenshot or description') + '\n\nReturn the enhanced prompt JSON as specified.' },
+            { type: 'image_url', image_url: { url: image } },
+          ],
+        }
+      : { role: 'user', content: (prompt || 'Create a website from this description. Return the enhanced prompt JSON as specified.') };
+
+  let enhancedPromptText: string | null = null;
+  push('starting prompt enhancer')
+
+    try {
+      const enhancerResp = await fetch('https://api.llama.com/compat/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
+          messages: [ { role: 'system', content: enhancerSystem }, enhancerUserContent ],
+          max_tokens: 1500,
+          temperature: 0.7,
+        }),
+      });
+
+  if (enhancerResp.ok) {
+        const enhancerData = await enhancerResp.json();
+        const raw = enhancerData.choices?.[0]?.message?.content || '';
+        // Try to extract JSON from the response
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            enhancedPromptText = parsed.enhanced_prompt || null;
+          } catch (e) {
+            // fallback to raw if JSON.parse fails
+            enhancedPromptText = raw;
+          }
+        } else {
+          enhancedPromptText = raw;
+        }
+        push('prompt enhancer completed')
+      }
+    } catch (e) {
+      console.error('Enhancer error:', e);
+      push('prompt enhancer failed')
+      enhancedPromptText = null;
+    }
+
+  // If enhancer didn't produce anything, fall back to the original prompt.
+  const finalPromptSource = enhancedPromptText || prompt || 'Create a single self-contained HTML document that implements the requested UI; return only the HTML.';
+  push('final prompt prepared')
+
+    // Stage 2: HTML generator — encourage images/videos, animations, and rich interactive sections.
+    const htmlSystem = systemPrompt + "\n\nAdditional instructions for this generation: Encourage including relevant images or videos (use provided URLs if available; otherwise use high-quality placeholder images from Picsum or Unsplash). Aim for a richly detailed, modern page with multiple well-structured sections, polished animations, and accessible markup. Avoid unnecessary repetition; prefer meaningful, diverse content across sections.";
+
+  push('starting HTML generation')
+  const response = await fetch('https://api.llama.com/compat/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -329,32 +151,24 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: 'Llama-4-Maverick-17B-128E-Instruct-FP8',
         messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: image ? [
-              {
-                type: 'text',
-                text: prompt || 'Analyze this screenshot and create a website clone that matches the design, layout, colors, and overall aesthetic.'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: image
-                }
+          { role: 'system', content: htmlSystem },
+          image
+            ? {
+                role: 'user',
+                content: [
+                  { type: 'text', text: finalPromptSource + '\n\nRespond with a single self-contained HTML document. Do not include any explanatory text.' },
+                  { type: 'image_url', image_url: { url: image } },
+                ],
               }
-            ] : prompt
-          }
+            : { role: 'user', content: finalPromptSource + '\n\nRespond with a single self-contained HTML document. Do not include any explanatory text.' },
         ],
         max_tokens: 50000,
-        temperature: 0.7,
+        temperature: 0.75,
       }),
     });
 
     if (!response.ok) {
+      push(`HTML generation failed: ${response.status}`)
       throw new Error(`Llama API error: ${response.status}`)
     }
 
@@ -362,6 +176,7 @@ Deno.serve(async (req) => {
     let generatedCode = data.choices[0]?.message?.content || '';
     const tokens = data.usage?.total_tokens;
     
+    push('HTML generation completed; cleaning response')
     // Clean up the response - remove any markdown or explanations
     if (generatedCode.includes('```')) {
       const codeMatch = generatedCode.match(/```(?:html|javascript|typescript|jsx|tsx)?\n?([\s\S]*?)\n?```/);
@@ -369,12 +184,18 @@ Deno.serve(async (req) => {
         generatedCode = codeMatch[1];
       }
     }
+    push('finished; returning response')
+    const summary = `Completed generation: enhancer ${enhancedPromptText ? 'used' : 'skipped'}, image ${image ? 'provided' : 'not provided'}, tokens ${tokens || 'unknown'}`
 
     return new Response(
       JSON.stringify({ 
         code: generatedCode,
-        isWebsiteClone,
-        tokens 
+        hasImage: !!image,
+        tokens,
+        runId,
+        summary,
+        steps,
+        status: 'done'
       }),
       { 
         headers: { 
