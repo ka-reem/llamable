@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Plus, Paperclip, Mic } from "lucide-react";
+import { Send, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
@@ -24,6 +24,7 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
   const [inputValue, setInputValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateSummary = (prompt: string, currentCode: string, isWebsiteClone: boolean) => {
     const lowerPrompt = prompt.toLowerCase();
@@ -132,6 +133,27 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
         setUploadedImage(base64);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const base64 = ev.target?.result as string;
+            setUploadedImage(base64);
+          };
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
     }
   };
 
@@ -266,38 +288,19 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
       {/* Chat Input */}
       <div className="p-4 border-t border-lovable-border">
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon" className="text-lovable-text-secondary hover:text-lovable-text-primary">
+          <Button variant="ghost" size="icon" className="text-lovable-text-secondary hover:text-lovable-text-primary" onClick={() => fileInputRef.current?.click()}>
             <Plus className="h-4 w-4" />
           </Button>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
           <div className="flex-1 relative">
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
+              onPaste={handlePaste}
               placeholder={uploadedImage ? "Describe what you want me to do with this screenshot..." : "Upload a screenshot or describe what you want to build..."}
-              className={`bg-chat-input border-lovable-border text-lovable-text-primary placeholder:text-lovable-text-secondary pr-20 ${uploadedImage ? 'pl-12' : ''}`}
+              className={`bg-chat-input border-lovable-border text-lovable-text-primary placeholder:text-lovable-text-secondary pr-4 ${uploadedImage ? 'pl-12' : ''}`}
             />
-            {uploadedImage && (
-              <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                <img src={uploadedImage} alt="Upload preview" className="w-8 h-8 rounded object-cover border border-lovable-border" />
-              </div>
-            )}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-lovable-text-secondary hover:text-lovable-text-primary">
-                  <Paperclip className="h-3 w-3" />
-                </Button>
-              </label>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-lovable-text-secondary hover:text-lovable-text-primary">
-                <Mic className="h-3 w-3" />
-              </Button>
-            </div>
           </div>
           <Button 
             onClick={handleSendMessage}
