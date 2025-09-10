@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
       
       🏗️ WEBSITE STRUCTURE REQUIREMENTS:
       - ALWAYS create a navigation bar at the top
+      - Limit navbar to 3–5 items maximum
       - Every section mentioned in the navbar MUST appear on the main page
       - Use anchor links (#section-id) for navbar navigation to scroll to sections
       - Structure: Header/Nav → Hero → Sections (About, Services, Portfolio, etc.) → Footer

@@ -1,61 +1,75 @@
 
 const enhanceHtml = (code: string) => {
-  const smartButtonScript = `<script>
+  const smoothStyle = `<style>
+  html { scroll-behavior: smooth; }
+  [id] { scroll-margin-top: 88px; }
+  </style>`;
+
+  const smartScript = `<script>
   document.addEventListener('DOMContentLoaded', function() {
     // Prevent form submissions
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-      form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        return false;
-      });
+    document.querySelectorAll('form').forEach(function(form){
+      form.addEventListener('submit', function(e){ e.preventDefault(); return false; });
     });
-    
-    // Handle all links and buttons intelligently
-    const links = document.querySelectorAll('a, button');
-    links.forEach(element => {
-      element.addEventListener('click', function(e) {
-        const href = this.getAttribute('href');
-        const onclick = this.getAttribute('onclick');
-        
-        // If it's a real anchor link (starting with #), allow it
-        if (href && href.startsWith('#')) {
-          return; // Allow anchor navigation
+
+    // Intelligent link/button handling
+    document.querySelectorAll('a, button').forEach(function(el){
+      el.addEventListener('click', function(e){
+        var href = this.getAttribute('href') || '';
+        var onclick = this.getAttribute('onclick');
+
+        // Anchor link handling with existence check
+        if (href.startsWith('#')) {
+          var id = href.slice(1);
+          if (!id) { e.preventDefault(); return; }
+          var target = document.getElementById(id);
+          if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            e.preventDefault();
+          }
+          return;
         }
-        
-        // If it's an external link, open in new tab
+
+        // External links -> new tab
         if (href && (href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:'))) {
           e.preventDefault();
           window.open(href, '_blank');
           return;
         }
-        
-        // If it has JavaScript or is trying to navigate to another page, prevent it
-        if (href && !href.startsWith('#') && href !== '#' && href !== '') {
+
+        // Block unknown internal navigations
+        if (href && href !== '' && href !== '#') {
           e.preventDefault();
-          // Smooth scroll to top as feedback
           window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
         }
-        
-        // For buttons without href, allow if they have valid onclick or just do nothing
+
+        // Buttons without handlers: just gentle feedback
         if (this.tagName === 'BUTTON' && !onclick) {
-          // Just provide visual feedback
-          this.style.transform = 'scale(0.95)';
-          setTimeout(() => {
-            this.style.transform = '';
-          }, 150);
+          this.style.transform = 'scale(0.96)';
+          setTimeout(() => { this.style.transform = ''; }, 140);
         }
       });
     });
   });
   </script>`;
 
-  // Insert the script before the closing body tag
-  if (code.includes('</body>')) {
-    return code.replace('</body>', smartButtonScript + '</body>');
+  // Inject style into head if available
+  let out = code;
+  if (out.includes('</head>')) {
+    out = out.replace('</head>', `${smoothStyle}\n</head>`);
+  } else {
+    out = smoothStyle + out;
   }
-  return code + smartButtonScript;
+
+  if (out.includes('</body>')) {
+    out = out.replace('</body>', `${smartScript}</body>`);
+  } else {
+    out = out + smartScript;
+  }
+  return out;
 };
 
 interface PreviewAreaProps {

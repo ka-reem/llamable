@@ -10,6 +10,7 @@ interface Message {
   content: string;
   sender: "user" | "ai";
   timestamp: Date;
+  meta?: string;
 }
 
 interface ChatInterfaceProps {
@@ -140,17 +141,16 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
     // Generate code with AI
     const result = await generateCodeWithAI(currentInput);
     
-    // Format timing info
+    // Format timing info for meta line
     const timing = result.duration < 1000 
       ? `${result.duration}ms` 
       : `${(result.duration / 1000).toFixed(1)}s`;
-    
-    const summaryWithStats = `${result.summary}\n\n*Generated in ${timing}${result.tokens ? ` • ${result.tokens.toLocaleString()} tokens` : ''}*`;
+    const meta = `Generated in ${timing}${result.tokens ? ` • ${result.tokens.toLocaleString()} tokens` : ''}`;
     
     // Replace processing message with actual response
     setMessages(prev => prev.map(msg => 
       msg.id === processingMessage.id 
-        ? { ...msg, content: summaryWithStats || "I'll help you build that! Let me create it for you." }
+        ? { ...msg, content: result.summary || "I'll help you build that! Let me create it for you.", meta }
         : msg
     ));
   };
@@ -220,7 +220,10 @@ const ChatInterface = ({ onCodeGenerated, currentCode = "" }: ChatInterfaceProps
                   }`}
                 >
                   <p className="text-sm">{message.content}</p>
-                  <p className="text-xs text-lovable-text-secondary mt-1">
+                  {message.meta && (
+                    <p className="text-[10px] text-lovable-text-secondary mt-1">{message.meta}</p>
+                  )}
+                  <p className="text-[10px] text-lovable-text-secondary mt-1">
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
