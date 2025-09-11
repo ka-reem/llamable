@@ -139,7 +139,17 @@ Deno.serve!(async (req) => {
   push('final prompt prepared')
 
     // Stage 2: HTML generator — encourage images/videos, animations, and rich interactive sections.
-    const htmlSystem = systemPrompt + "\n\nAdditional instructions for this generation: Encourage including relevant images or videos (use provided URLs if available; otherwise use high-quality placeholder images from Picsum or Unsplash). Aim for a richly detailed, modern page with multiple well-structured sections, polished animations, and accessible markup. Avoid unnecessary repetition; prefer meaningful, diverse content across sections.";
+    const htmlSystem = systemPrompt + `
+
+IMPORTANT IMAGE REQUIREMENTS:
+- For ALL images, use reliable Picsum URLs with seeds for consistency: https://picsum.photos/seed/[unique-seed]/[width]/[height]
+- Use different seeds for different images (e.g., hero1, gallery1, team1, feature1, etc.)
+- Always wrap images in <figure> tags with proper alt text and figcaptions
+- Include error handling: onerror="this.src='https://placehold.co/[width]x[height]?text=Image+not+found'; this.onerror=null;"
+- Add loading="lazy" and decoding="async" for performance
+- Example: <figure><img src="https://picsum.photos/seed/hero1/800/600" alt="Hero image" width="800" height="600" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/800x600?text=Image+not+found'; this.onerror=null;"><figcaption>Description</figcaption></figure>
+
+Additional instructions: Aim for a richly detailed, modern page with multiple well-structured sections, polished animations, and accessible markup. Include multiple images using the Picsum pattern above. Avoid unnecessary repetition; prefer meaningful, diverse content across sections.`;
 
   push('starting HTML generation')
   const response = await fetch('https://api.llama.com/compat/v1/chat/completions', {
